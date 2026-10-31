@@ -164,12 +164,21 @@ pkgs.stdenv.mkDerivation {
   ];
 
   postPatch = ''
-         cat > "$PWD/nix-dbus-run-session" <<EOF
+           cat > "$PWD/nix-dbus-run-session" <<EOF
 #!${pkgs.runtimeShell}
-exec ${pkgs.dbus}/bin/dbus-run-session --config-file=${dbusSessionConf} "\$@"
-EOF
-    chmod +x "$PWD/nix-dbus-run-session"
+export NIX_SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+export SSL_CERT_FILE="\$NIX_SSL_CERT_FILE"
 
+case "\$1" in
+  --config-file*)
+    exec ${pkgs.dbus}/bin/dbus-run-session "\$@"
+    ;;
+  *)
+    exec ${pkgs.dbus}/bin/dbus-run-session --config-file=${dbusSessionConf} "\$@"
+    ;;
+esac
+EOF
+  chmod +x "$PWD/nix-dbus-run-session"
     substituteInPlace subprojects/singularity-nearby/meson.build \
       --replace-fail "'dbus-run-session'" "'$PWD/nix-dbus-run-session'"
 
