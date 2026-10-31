@@ -164,6 +164,15 @@ pkgs.stdenv.mkDerivation {
   ];
 
   postPatch = ''
+         cat > "$PWD/nix-dbus-run-session" <<EOF
+#!${pkgs.runtimeShell}
+exec ${pkgs.dbus}/bin/dbus-run-session --config-file=${dbusSessionConf} "\$@"
+EOF
+    chmod +x "$PWD/nix-dbus-run-session"
+
+    substituteInPlace subprojects/singularity-nearby/meson.build \
+      --replace-fail "'dbus-run-session'" "'$PWD/nix-dbus-run-session'"
+
           # Upstream's bootstrap script downloads these files, which is not
           # permitted in the Nix build sandbox. Populate the same runtime
           # layout from fixed-output derivations instead.
